@@ -21,6 +21,9 @@ repositories {
 }
 
 dependencies {
+    // AWS S3 SDK for RustFS storage
+   // implementation 'software.amazon.awssdk:s3:2.25.27'
+
     // Spring Boot Starters (Boot 4.0 modular design)
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
     implementation 'org.springframework.boot:spring-boot-starter-validation'

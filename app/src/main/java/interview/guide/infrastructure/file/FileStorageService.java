@@ -99,7 +99,7 @@ public class FileStorageService {
                     .build();
 
             s3Client.putObject(putRequest, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
-            log.info("文件上传成功: {} -> {}", originalFilename, fileKey);
+            log.info("文件上传成功!: {} -> {}", originalFilename, fileKey);
             return fileKey;
         } catch (IOException e) {
             log.error("读取上传文件失败: {}", e.getMessage(), e);
