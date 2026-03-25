@@ -53,7 +53,7 @@ spring:
   ai:
     openai:
       base-url: https://dashscope.aliyuncs.com/compatible-mode
-      api-key: ${AI_BAILIAN_API_KEY:sk-b1199e2dd6dc43bf88b29d98ec6c1a96}   # 不再写死密钥
+      api-key: ${AI_BAILIAN_API_KEY}   # 不再写死密钥
       chat:
         options:
           model: ${AI_MODEL:qwen-plus}
@@ -74,12 +74,6 @@ spring:
         dimensions: 1024  # text-embedding-v3实际生成的向量维度
         initialize-schema: true # 开发环境设置为 true，方便快速启动。生产环境设置为 false，手动管理数据库 schema，避免意外变更。
         remove-existing-vector-store-table: false  # 保留现有表和数据
-
-#jwt 令牌
-jwt:
-  secret: ${JWT_SECRET:mySecretKeyForJwtGeneration12345678901234567890}
-  expiration: 166400000   # 48小时
-
 
 # Application custom configuration
 app:
@@ -113,8 +107,8 @@ app:
   # RustFS (S3兼容) 存储配置
   storage:
     endpoint: ${APP_STORAGE_ENDPOINT:http://localhost:9000}
-    access-key: ${APP_STORAGE_ACCESS_KEY:Ba3dyiUuQgrzLV4RpXgM}
-    secret-key: ${APP_STORAGE_SECRET_KEY:Mo0mg85fUMqT699gY02vNefOuyvkpPNvGaNlTRKq}
+    access-key: ${APP_STORAGE_ACCESS_KEY:}
+    secret-key: ${APP_STORAGE_SECRET_KEY:}
     bucket: ${APP_STORAGE_BUCKET:interview-guide}
     region: ${APP_STORAGE_REGION:us-east-1}
   
