@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosRequestConfig } from 'axios';
 
 const instance = axios.create({
   baseURL: '',
@@ -19,21 +19,16 @@ instance.interceptors.request.use(config => {
 
 // 响应拦截器：直接返回 response.data
 instance.interceptors.response.use(
-  response => {
-    const data = response.data;
-    // 假设后端统一格式：{ success: boolean, data: any, message: string }
-    if (data && typeof data === 'object' && 'success' in data) {
-      if (data.success === true) {
-        return data.data;   // 成功时返回实际数据
-      } else {
-        // 失败时抛出异常，进入 catch
-        return Promise.reject(new Error(data.message || '请求失败'));
-      }
-    }
-    // 非标准格式，直接返回数据
-    return data;
-  },
+  response => response.data,
   error => Promise.reject(error)
 );
 
-export default instance;
+// 重新导出，让 TypeScript 知道返回的是 data 类型
+const api = {
+  get: <T = any>(url: string, config?: AxiosRequestConfig): Promise<T> => instance.get(url, config),
+  post: <T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> => instance.post(url, data, config),
+  put: <T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> => instance.put(url, data, config),
+  delete: <T = any>(url: string, config?: AxiosRequestConfig): Promise<T> => instance.delete(url, config),
+};
+
+export default api;
