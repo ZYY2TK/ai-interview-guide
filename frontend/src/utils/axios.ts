@@ -23,6 +23,7 @@ instance.interceptors.response.use(
   error => Promise.reject(error)
 );
 
+//shit
 // 重新导出，让 TypeScript 知道返回的是 data 类型
 const api = {
   get: <T = any>(url: string, config?: AxiosRequestConfig): Promise<T> => instance.get(url, config),
