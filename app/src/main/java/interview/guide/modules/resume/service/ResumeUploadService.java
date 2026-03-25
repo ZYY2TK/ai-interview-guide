@@ -4,6 +4,7 @@ import interview.guide.common.config.AppConfigProperties;
 import interview.guide.common.exception.BusinessException;
 import interview.guide.common.exception.ErrorCode;
 import interview.guide.common.model.AsyncTaskStatus;
+import interview.guide.common.utils.SecurityUtils;
 import interview.guide.infrastructure.file.FileStorageService;
 import interview.guide.infrastructure.file.FileValidationService;
 import interview.guide.modules.interview.model.ResumeAnalysisResponse;
@@ -35,6 +36,7 @@ public class ResumeUploadService {
     private final FileValidationService fileValidationService;
     private final AnalyzeStreamProducer analyzeStreamProducer;
     private final ResumeRepository resumeRepository;
+    private final SecurityUtils securityUtils;
 
     private static final long MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 

@@ -16,6 +16,17 @@ const instance: AxiosInstance = axios.create({
   timeout: 60000,
 });
 
+// 添加请求拦截器new
+instance.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+
+
 /**
  * 响应拦截器
  * 

@@ -3,6 +3,8 @@ import Layout from './components/Layout';
 import { useEffect, useState, Suspense, lazy } from 'react';
 import { historyApi } from './api/history';
 import type { UploadKnowledgeBaseResponse } from './api/knowledgebase';
+import Login from './pages/Login';      // 新增
+import Register from './pages/Register'; // 新增
 
 // Lazy load components
 const UploadPage = lazy(() => import('./pages/UploadPage'));
@@ -20,6 +22,15 @@ const Loading = () => (
     <div className="w-10 h-10 border-3 border-slate-200 border-t-primary-500 rounded-full animate-spin" />
   </div>
 );
+
+// 路由守卫组件
+function ProtectedRoute({ children }: { children: JSX.Element }) {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+  return children;
+}
 
 // 上传页面包装器
 function UploadPageWrapper() {
@@ -140,7 +151,19 @@ function App() {
     <BrowserRouter>
       <Suspense fallback={<Loading />}>
         <Routes>
-          <Route path="/" element={<Layout />}>
+                 {/* 公开路由：登录和注册 */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+
+          {/* 需要登录的路由，用 ProtectedRoute 包裹 */}
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <Layout />
+              </ProtectedRoute>
+            }
+          >
             {/* 默认重定向到上传页面 */}
             <Route index element={<Navigate to="/upload" replace />} />
 
@@ -255,5 +278,7 @@ function KnowledgeBaseUploadPageWrapper() {
 
   return <KnowledgeBaseUploadPage onUploadComplete={handleUploadComplete} onBack={handleBack} />;
 }
+
+
 
 export default App;

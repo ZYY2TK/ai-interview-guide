@@ -1,6 +1,7 @@
 package interview.guide.modules.resume.model;
 
 import interview.guide.common.model.AsyncTaskStatus;
+import interview.guide.modules.user.entity.User;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
@@ -70,8 +71,22 @@ public class ResumeEntity {
         lastAccessedAt = LocalDateTime.now();
         accessCount = 1;
     }
+
+
+    // 在现有字段后面添加（注意 import 对应的 User 类）
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User user;
     
     // Getters and Setters
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
     public Long getId() {
         return id;
     }

@@ -2,6 +2,7 @@ package interview.guide.modules.resume.service;
 
 import interview.guide.common.exception.BusinessException;
 import interview.guide.common.exception.ErrorCode;
+import interview.guide.common.utils.SecurityUtils;
 import interview.guide.infrastructure.export.PdfExportService;
 import interview.guide.infrastructure.mapper.InterviewMapper;
 import interview.guide.infrastructure.mapper.ResumeMapper;
@@ -11,6 +12,7 @@ import interview.guide.modules.resume.model.ResumeAnalysisEntity;
 import interview.guide.modules.resume.model.ResumeDetailDTO;
 import interview.guide.modules.resume.model.ResumeEntity;
 import interview.guide.modules.resume.model.ResumeListItemDTO;
+import interview.guide.modules.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -18,6 +20,7 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 
+import org.springframework.security.access.AccessDeniedException;
 import java.util.List;
 import java.util.Optional;
 
@@ -36,12 +39,14 @@ public class ResumeHistoryService {
     private final ObjectMapper objectMapper;
     private final ResumeMapper resumeMapper;
     private final InterviewMapper interviewMapper;
+    private final SecurityUtils securityUtils;   // 新增
 
     /**
      * 获取所有简历列表
      */
     public List<ResumeListItemDTO> getAllResumes() {
-        List<ResumeEntity> resumes = resumePersistenceService.findAllResumes();
+        User currentUser = securityUtils.getCurrentUser();
+        List<ResumeEntity> resumes = resumePersistenceService.findResumesByUser(currentUser);
 
         return resumes.stream().map(resume -> {
             // 获取最新分析结果的分数
@@ -75,12 +80,18 @@ public class ResumeHistoryService {
      * 获取简历详情（包含分析历史）
      */
     public ResumeDetailDTO getResumeDetail(Long id) {
-        Optional<ResumeEntity> resumeOpt = resumePersistenceService.findById(id);
+        User currentUser = securityUtils.getCurrentUser();
+        Optional<ResumeEntity> resumeOpt = resumePersistenceService.findById(id);//修改这里
         if (resumeOpt.isEmpty()) {
             throw new BusinessException(ErrorCode.RESUME_NOT_FOUND);
         }
 
         ResumeEntity resume = resumeOpt.get();
+
+        // 权限校验：检查简历是否属于当前用户
+        if (!resume.getUser().getId().equals(currentUser.getId())) {
+            throw new AccessDeniedException("无权访问此简历");
+        }
 
         // 获取所有分析记录，使用 MapStruct 批量转换
         List<ResumeAnalysisEntity> analyses = resumePersistenceService.findAnalysesByResumeId(id);

@@ -1,7 +1,21 @@
-import {Link, Outlet, useLocation} from 'react-router-dom';
-import {motion} from 'framer-motion';
-import {ChevronRight, Database, FileStack, MessageSquare, Moon, Sparkles, Sun, Upload, Users,} from 'lucide-react';
-import {useTheme} from '../hooks/useTheme';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import {
+  ChevronRight,
+  Database,
+  FileStack,
+  MessageSquare,
+  Moon,
+  Sparkles,
+  Sun,
+  Upload,
+  Users,
+  LogOut,
+  LogIn,
+  UserPlus,
+} from 'lucide-react';
+import { useTheme } from '../hooks/useTheme';
+import { useState, useEffect } from 'react';
 
 interface NavItem {
   id: string;
@@ -11,6 +25,17 @@ interface NavItem {
   description?: string;
 }
 
+// 辅助函数：从 JWT token 解析用户名
+const getUsernameFromToken = (token: string | null): string | null => {
+  if (!token) return null;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.sub || payload.username || null;
+  } catch {
+    return null;
+  }
+};
+
 interface NavGroup {
   id: string;
   title: string;
@@ -19,8 +44,26 @@ interface NavGroup {
 
 export default function Layout() {
   const location = useLocation();
+  const navigate = useNavigate();
   const currentPath = location.pathname;
-    const {theme, toggleTheme} = useTheme();
+  const { theme, toggleTheme } = useTheme();
+
+  const [username, setUsername] = useState<string | null>(null);
+  const token = localStorage.getItem('token');
+
+  useEffect(() => {
+    if (token) {
+      const user = getUsernameFromToken(token);
+      setUsername(user);
+    } else {
+      setUsername(null);
+    }
+  }, [token]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    navigate('/login');
+  };
 
   // 按业务模块组织的导航项
   const navGroups: NavGroup[] = [
@@ -55,44 +98,41 @@ export default function Layout() {
   };
 
   return (
-      <div
-          className="flex min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 dark:from-slate-900 dark:to-slate-800">
+    <div className="flex min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 dark:from-slate-900 dark:to-slate-800">
       {/* 左侧边栏 */}
-          <aside
-              className="w-64 bg-white dark:bg-slate-900 border-r border-slate-100 dark:border-slate-700 fixed h-screen left-0 top-0 z-50 flex flex-col">
+      <aside className="w-64 bg-white dark:bg-slate-900 border-r border-slate-100 dark:border-slate-700 fixed h-screen left-0 top-0 z-50 flex flex-col">
         {/* Logo */}
-              <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+        <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
           <Link to="/upload" className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary-500/30">
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-                <span
-                    className="text-lg font-bold text-slate-800 dark:text-white tracking-tight block">AI Interview</span>
-                <span className="text-xs text-slate-400 dark:text-slate-500">智能面试助手</span>
+              <span className="text-lg font-bold text-slate-800 dark:text-white tracking-tight block">AI Interview</span>
+              <span className="text-xs text-slate-400 dark:text-slate-500">智能面试助手</span>
             </div>
           </Link>
         </div>
 
-              {/* 主题切换按钮 */}
-              <div className="px-4 pb-2">
-                  <button
-                      onClick={toggleTheme}
-                      className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-                  >
-                      {theme === 'dark' ? (
-                          <>
-                              <Sun className="w-4 h-4"/>
-                              <span className="text-sm font-medium">浅色模式</span>
-                          </>
-                      ) : (
-                          <>
-                              <Moon className="w-4 h-4"/>
-                              <span className="text-sm font-medium">深色模式</span>
-                          </>
-                      )}
-                  </button>
-              </div>
+        {/* 主题切换按钮 */}
+        <div className="px-4 pb-2">
+          <button
+            onClick={toggleTheme}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+          >
+            {theme === 'dark' ? (
+              <>
+                <Sun className="w-4 h-4" />
+                <span className="text-sm font-medium">浅色模式</span>
+              </>
+            ) : (
+              <>
+                <Moon className="w-4 h-4" />
+                <span className="text-sm font-medium">深色模式</span>
+              </>
+            )}
+          </button>
+        </div>
 
         {/* 导航菜单 */}
         <nav className="flex-1 p-4 overflow-y-auto">
@@ -132,14 +172,12 @@ export default function Layout() {
                             {item.label}
                           </span>
                           {item.description && (
-                              <span className="text-xs text-slate-400 dark:text-slate-500 truncate block">
+                            <span className="text-xs text-slate-400 dark:text-slate-500 truncate block">
                               {item.description}
                             </span>
                           )}
                         </div>
-                        {active && (
-                          <ChevronRight className="w-4 h-4 text-primary-400" />
-                        )}
+                        {active && <ChevronRight className="w-4 h-4 text-primary-400" />}
                       </Link>
                     );
                   })}
@@ -150,17 +188,57 @@ export default function Layout() {
         </nav>
 
         {/* 底部信息 */}
-              <div className="p-4 border-t border-slate-100 dark:border-slate-700">
-                  <div
-                      className="px-3 py-2 bg-gradient-to-r from-primary-50 to-indigo-50 dark:from-primary-900/30 dark:to-slate-800 rounded-xl">
-                      <p className="text-xs text-primary-600 dark:text-primary-400 font-medium">AI 面试助手 v1.0</p>
-                      <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Powered by AI</p>
+        <div className="p-4 border-t border-slate-100 dark:border-slate-700">
+          <div className="px-3 py-2 bg-gradient-to-r from-primary-50 to-indigo-50 dark:from-primary-900/30 dark:to-slate-800 rounded-xl">
+            <p className="text-xs text-primary-600 dark:text-primary-400 font-medium">AI 面试助手 v1.0</p>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Produced by ZYY</p>
           </div>
         </div>
       </aside>
 
       {/* 主内容区 */}
       <main className="flex-1 ml-64 p-10 min-h-screen overflow-y-auto">
+        {/* 顶部导航栏 */}
+        <div className="sticky top-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700 rounded-xl mb-6">
+          <div className="flex items-center justify-between px-8 py-3">
+            <div className="flex-1">
+              {/* 可放置面包屑或标题，暂时留空 */}
+            </div>
+            <div className="flex items-center gap-3">
+              {token ? (
+                <>
+                  <span className="text-sm text-slate-700 dark:text-slate-300">
+                    欢迎，{username || '用户'}
+                  </span>
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    退出
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    to="/login"
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  >
+                    <LogIn className="w-4 h-4" />
+                    登录
+                  </Link>
+                  <Link
+                    to="/register"
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    注册
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
         <motion.div
           key={currentPath}
           initial={{ opacity: 0, y: 20 }}

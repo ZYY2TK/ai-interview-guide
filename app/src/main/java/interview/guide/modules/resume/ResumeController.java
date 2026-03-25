@@ -2,8 +2,10 @@ package interview.guide.modules.resume;
 
 import interview.guide.common.annotation.RateLimit;
 import interview.guide.common.result.Result;
+import interview.guide.common.utils.SecurityUtils;
 import interview.guide.modules.resume.model.ResumeDetailDTO;
 import interview.guide.modules.resume.model.ResumeListItemDTO;
+import interview.guide.modules.resume.repository.ResumeRepository;
 import interview.guide.modules.resume.service.ResumeDeleteService;
 import interview.guide.modules.resume.service.ResumeHistoryService;
 import interview.guide.modules.resume.service.ResumeUploadService;
@@ -32,6 +34,8 @@ public class ResumeController {
     private final ResumeUploadService uploadService;
     private final ResumeDeleteService deleteService;
     private final ResumeHistoryService historyService;
+    private final SecurityUtils securityUtils;
+    private final ResumeRepository resumeRepository;
 
     /**
      * 上传简历并获取分析结果

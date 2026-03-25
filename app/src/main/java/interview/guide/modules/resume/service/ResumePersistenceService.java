@@ -2,6 +2,7 @@ package interview.guide.modules.resume.service;
 
 import interview.guide.common.exception.BusinessException;
 import interview.guide.common.exception.ErrorCode;
+import interview.guide.common.utils.SecurityUtils;
 import interview.guide.infrastructure.file.FileHashService;
 import interview.guide.infrastructure.mapper.ResumeMapper;
 import interview.guide.modules.interview.model.ResumeAnalysisResponse;
@@ -9,6 +10,7 @@ import interview.guide.modules.resume.model.ResumeAnalysisEntity;
 import interview.guide.modules.resume.model.ResumeEntity;
 import interview.guide.modules.resume.repository.ResumeAnalysisRepository;
 import interview.guide.modules.resume.repository.ResumeRepository;
+import interview.guide.modules.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -35,6 +37,7 @@ public class ResumePersistenceService {
     private final ObjectMapper objectMapper;
     private final ResumeMapper resumeMapper;
     private final FileHashService fileHashService;
+    private final SecurityUtils securityUtils;   // ← 新增这一行
     
     /**
      * 检查简历是否已存在（基于文件内容hash）
@@ -78,6 +81,9 @@ public class ResumePersistenceService {
             resume.setStorageKey(storageKey);
             resume.setStorageUrl(storageUrl);
             resume.setResumeText(resumeText);
+
+            User currentUser = securityUtils.getCurrentUser();  //新增
+            resume.setUser(currentUser);
             
             ResumeEntity saved = resumeRepository.save(resume);
             log.info("简历已保存: id={}, hash={}", saved.getId(), fileHash);
@@ -127,7 +133,13 @@ public class ResumePersistenceService {
     public Optional<ResumeAnalysisResponse> getLatestAnalysisAsDTO(Long resumeId) {
         return getLatestAnalysis(resumeId).map(this::entityToDTO);
     }
-    
+/**
+     * 获取用户所有简历列表
+     */
+    public List<ResumeEntity> findResumesByUser(User user) {
+        return resumeRepository.findByUser(user);
+    }
+
     /**
      * 获取所有简历列表
      */
