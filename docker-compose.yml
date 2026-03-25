@@ -185,7 +185,7 @@ services:
       - "80:80"
       #新添加DNS
     volumes:
-    - ./nginx.conf:/etc/nginx/conf.d/default.conf   # 新增这一行
+    - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf   # 新增这一行
 
 # =========================================
 # 定义 Docker 卷 (Volumes)

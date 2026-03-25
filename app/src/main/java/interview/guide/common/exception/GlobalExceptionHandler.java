@@ -1,3 +1,4 @@
+
 package interview.guide.common.exception;
 
 import interview.guide.common.result.Result;
@@ -13,6 +14,10 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.http.ResponseEntity;
+import java.util.Map;
+
 
 import java.net.SocketTimeoutException;
 import java.util.stream.Collectors;
@@ -96,7 +101,7 @@ public class GlobalExceptionHandler {
             return Result.error(ErrorCode.AI_SERVICE_TIMEOUT, "AI服务响应超时，请稍后重试");
         }
         
-        // SSL握手失败或其他网络问题
+      // SSL握手失败或其他网络问题
         String message = e.getMessage();
         if (message != null && message.contains("handshake")) {
             return Result.error(ErrorCode.AI_SERVICE_UNAVAILABLE, "AI服务连接失败（网络不稳定），请检查网络或稍后重试");
@@ -126,7 +131,12 @@ public class GlobalExceptionHandler {
         
         return Result.error(ErrorCode.AI_SERVICE_ERROR, "AI服务调用失败，请稍后重试");
     }
-    
+		
+ @ExceptionHandler(BadCredentialsException.class)
+public ResponseEntity<Map<String, String>> handleBadCredentials(BadCredentialsException ex) {
+    return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+            .body(Map.of("message", "用户名或密码错误"));
+}
     /**
      * 处理其他未知异常
      * 统一返回 HTTP 200，通过业务错误码区分异常类型
