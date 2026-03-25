@@ -17,21 +17,20 @@ instance.interceptors.request.use(config => {
   return config;
 });
 
-// 响应拦截器：处理统一响应格式
+// 响应拦截器：直接返回 response.data
 instance.interceptors.response.use(
   response => {
     const data = response.data;
-    // 假设后端返回 { success: boolean, code: number, data: any, message: string }
+    // 假设后端统一格式：{ success: boolean, data: any, message: string }
     if (data && typeof data === 'object' && 'success' in data) {
       if (data.success === true) {
-        // 成功时返回实际数据（data.data）
-        return data.data;
+        return data.data;   // 成功时返回实际数据
       } else {
-        // 失败时抛出异常，包含错误信息
+        // 失败时抛出异常，进入 catch
         return Promise.reject(new Error(data.message || '请求失败'));
       }
     }
-    // 如果接口没有 success 字段（如一些非标准接口），直接返回数据
+    // 非标准格式，直接返回数据
     return data;
   },
   error => Promise.reject(error)

