@@ -12,24 +12,38 @@ export default function UploadPage({ onUploadComplete }: UploadPageProps) {
   const [error, setError] = useState('');
 
   const handleUpload = async (file: File) => {
-    setUploading(true);
-    setError('');
+  setUploading(true);
+  setError('');
 
-    try {
-      const data = await resumeApi.uploadAndAnalyze(file);
+  try {
+    const data = await resumeApi.uploadAndAnalyze(file);
 
-      // 异步模式：只检查上传是否成功（storage 信息）
-      if (!data.storage || !data.storage.resumeId) {
-        throw new Error('上传失败，请重试');
-      }
+    // 提取简历ID（兼容新上传和重复上传）
+    let resumeId: number | undefined;
 
-      // 上传成功，跳转到简历库（分析在后台进行）
-      onUploadComplete(data.storage.resumeId);
-    } catch (err) {
-      setError(getErrorMessage(err));
-      setUploading(false);
+    if (data.storage && typeof data.storage.resumeId === 'number') {
+      resumeId = data.storage.resumeId;
+    } else if (data.resume && typeof data.resume.id === 'number') {
+      resumeId = data.resume.id;
+    } else if (typeof (data as any).resumeId === 'number') {
+      resumeId = (data as any).resumeId;
     }
-  };
+
+    if (resumeId === undefined) {
+      throw new Error('上传失败，未返回简历ID');
+    }
+
+    // 如果是重复简历，弹出提示
+    if (data.duplicate === true) {
+      alert('该简历已存在，将跳转到简历页面（如果未发现，请检查其他账号）');
+    }
+
+    onUploadComplete(resumeId);
+  } catch (err) {
+    setError(getErrorMessage(err));
+    setUploading(false);
+  }
+};
 
   return (
     <FileUploadCard

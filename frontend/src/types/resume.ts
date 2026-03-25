@@ -19,6 +19,11 @@ export interface StorageInfo {
 export interface UploadResponse {
   analysis?: ResumeAnalysisResponse;
   storage: StorageInfo;
+    resume?: {
+    id: number;
+    filename: string;
+    analyzeStatus: string;
+  };
   duplicate?: boolean;
   message?: string;
 }

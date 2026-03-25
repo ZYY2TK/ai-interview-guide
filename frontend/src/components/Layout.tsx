@@ -190,7 +190,7 @@ export default function Layout() {
         {/* 底部信息 */}
         <div className="p-4 border-t border-slate-100 dark:border-slate-700">
           <div className="px-3 py-2 bg-gradient-to-r from-primary-50 to-indigo-50 dark:from-primary-900/30 dark:to-slate-800 rounded-xl">
-            <p className="text-xs text-primary-600 dark:text-primary-400 font-medium">AI 面试助手 v1.0</p>
+            <p className="text-xs text-primary-600 dark:text-primary-400 font-medium">AI 面试助手 v1.0.3</p>
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Produced by ZYY</p>
           </div>
         </div>
