@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public abstract class AbstractStreamConsumer<T> {
 
     private final RedisService redisService;
-    private final AtomicBoolean running = new AtomicBoolean(false);
+    private final AtomicBoolean running = new AtomicBoolean(false);//线程运行状态
     private ExecutorService executorService;
     private String consumerName;
 
@@ -61,14 +61,21 @@ public abstract class AbstractStreamConsumer<T> {
         log.info("{}消费者已关闭: consumerName={}", taskDisplayName(), consumerName);
     }
 
+    //IMP从某个Stream的某个Consumer Group里循环拉消息
     private void consumeLoop() {
-        while (running.get()) {
+        while (running.get()) {  //值不为0，则为真 然后一直循环
             try {
+                 /* @param streamKey      Stream 键
+                        * @param groupName      消费者组名
+                        * @param consumerName   消费者名
+                        * @param count          每次读取数量
+                        * @param blockTimeoutMs 阻塞等待超时时间（毫秒），0 表示无限等待
+                        * @param processor      消息处理器*/
                 redisService.streamConsumeMessages(
-                    streamKey(),
-                    groupName(),
-                    consumerName,
-                    AsyncTaskStreamConstants.BATCH_SIZE,
+                    streamKey(),  //键
+                    groupName(),//消费者组名
+                    consumerName,  //消费者名
+                    AsyncTaskStreamConstants.BATCH_SIZE,  //每次读取数量
                     AsyncTaskStreamConstants.POLL_INTERVAL_MS,
                     this::processMessage
                 );
@@ -82,6 +89,8 @@ public abstract class AbstractStreamConsumer<T> {
         }
     }
 
+
+    //IMp 执行业务逻辑
     private void processMessage(StreamMessageId messageId, Map<String, String> data) {
         T payload = parsePayload(messageId, data);
         if (payload == null) {
@@ -93,11 +102,11 @@ public abstract class AbstractStreamConsumer<T> {
         log.info("开始处理{}任务: {}, messageId={}, retryCount={}",
             taskDisplayName(), payloadIdentifier(payload), messageId, retryCount);
 
-        try {
-            markProcessing(payload);
-            processBusiness(payload);
-            markCompleted(payload);
-            ackMessage(messageId);
+        try {  //IMP开始处理
+            markProcessing(payload);      //更新消息状态为 TODO  ： PROCESSING
+            processBusiness(payload);    //开始干活的地方 ：对接刚刚的将文本 IMP 向量化并存储进 TODO ：pgvector
+            markCompleted(payload);     //如果完成  更新消息状态为 TODO  ： COMPLETED
+            ackMessage(messageId);     //告诉 Redis：这条消息我处理完了，可以从TODO pending entries list 里确认掉
             log.info("{}任务完成: {}", taskDisplayName(), payloadIdentifier(payload));
         } catch (Exception e) {
             log.error("{}任务失败: {}, error={}", taskDisplayName(), payloadIdentifier(payload), e.getMessage(), e);

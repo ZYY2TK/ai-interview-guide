@@ -53,8 +53,8 @@ public class DocumentParseService {
         }
 
         try (InputStream inputStream = file.getInputStream()) {
-            String content = parseContent(inputStream);
-            String cleanedContent = textCleaningService.cleanText(content);
+            String content = parseContent(inputStream);     //这里先Tika进行文字的提取
+            String cleanedContent = textCleaningService.cleanText(content);    //然后Textclean进行一些File：或者String前后空字符清理，等等
             log.info("文件解析成功，提取文本长度: {} 字符", cleanedContent.length());
             return cleanedContent;
         } catch (IOException | TikaException | SAXException e) {
@@ -105,6 +105,9 @@ public class DocumentParseService {
      * @throws TikaException   Tika 解析异常
      * @throws SAXException    SAX 解析异常
      */
+
+
+    //Tika的简历提取
     private String parseContent(InputStream inputStream) throws IOException, TikaException, SAXException {
         // 1. 创建自动检测解析器
         AutoDetectParser parser = new AutoDetectParser();

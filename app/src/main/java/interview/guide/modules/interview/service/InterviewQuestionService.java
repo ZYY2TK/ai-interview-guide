@@ -36,7 +36,7 @@ public class InterviewQuestionService {
     private final PromptTemplate userPromptTemplate;
     private final BeanOutputConverter<QuestionListDTO> outputConverter;
     private final StructuredOutputInvoker structuredOutputInvoker;
-    private final int followUpCount;
+    private final int followUpCount;    //可配置的追问数量
     
     // 问题类型权重分配（按优先级）
     private static final double PROJECT_RATIO = 0.20;      // 20% 项目经历
@@ -64,7 +64,7 @@ public class InterviewQuestionService {
             StructuredOutputInvoker structuredOutputInvoker,
             @Value("classpath:prompts/interview-question-system.st") Resource systemPromptResource,
             @Value("classpath:prompts/interview-question-user.st") Resource userPromptResource,
-            @Value("${app.interview.follow-up-count:1}") int followUpCount) throws IOException {
+            @Value("${app.interview.follow-up-count:1}") int followUpCount) throws IOException {   //追问数量配置在了application.yml
         this.chatClient = chatClientBuilder.build();
         this.structuredOutputInvoker = structuredOutputInvoker;
         this.systemPromptTemplate = new PromptTemplate(systemPromptResource.getContentAsString(StandardCharsets.UTF_8));
@@ -198,8 +198,14 @@ public class InterviewQuestionService {
             }
             QuestionType type = parseQuestionType(q.type());
             int mainQuestionIndex = index;
-            questions.add(InterviewQuestionDTO.create(index++, q.question(), type, q.category(), false, null));
+            questions.add(InterviewQuestionDTO.create(index++,
+                    q.question(),
+                    type,
+                    q.category(),
+                    false,  //是否是追问问题
+                    null));  //追问关联的著问题索引
 
+            //展开追问为独立问题
             List<String> followUps = sanitizeFollowUps(q.followUps());
             for (int i = 0; i < followUps.size(); i++) {
                 questions.add(InterviewQuestionDTO.create(

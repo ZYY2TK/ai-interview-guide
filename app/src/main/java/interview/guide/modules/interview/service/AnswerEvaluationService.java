@@ -44,15 +44,15 @@ public class AnswerEvaluationService {
     private final PromptTemplate summaryUserPromptTemplate;
     private final BeanOutputConverter<FinalSummaryDTO> summaryOutputConverter;
     private final StructuredOutputInvoker structuredOutputInvoker;
-    private final int evaluationBatchSize;
+    private final int evaluationBatchSize;    //分批评估大小
     
     // 中间DTO用于接收AI响应
     private record EvaluationReportDTO(
-        int overallScore,
-        String overallFeedback,
-        List<String> strengths,
-        List<String> improvements,
-        List<QuestionEvaluationDTO> questionEvaluations
+        int overallScore,  //该批次的总体得分（由 AI 根据这一批的回答质量给出的综合分数，可能是 平均分或总分）
+        String overallFeedback,  //针对该批面试表现的整体评语，总结这一批回答的优缺点。
+        List<String> strengths,   //IMP该批回答中表现出的优点/亮点列表，每条一个点。
+        List<String> improvements,    //该批回答中需要改进的地方列表，每条一个点
+        List<QuestionEvaluationDTO> questionEvaluations   //该批次内每个问题的详细评估，包含每个问题的索引、得分、具体反馈、参考答案、关键点等。
     ) {}
     
     private record QuestionEvaluationDTO(
@@ -97,7 +97,7 @@ public class AnswerEvaluationService {
     /**
      * 评估完整面试并生成报告
      */
-    public InterviewReportDTO evaluateInterview(String sessionId, String resumeText,
+    public InterviewReportDTO evaluateInterview(String sessionId, String resumeText,    //IMP主程序
                                                  List<InterviewQuestionDTO> questions) {
         log.info("开始评估面试: {}, 共{}题", sessionId, questions.size());
         
@@ -110,11 +110,16 @@ public class AnswerEvaluationService {
             // 分批评估，避免单次上下文过大导致 token 超限
             List<BatchEvaluationResult> batchResults = evaluateInBatches(sessionId, resumeSummary, questions);
 
-            List<QuestionEvaluationDTO> mergedEvaluations = mergeQuestionEvaluations(batchResults);
-            String fallbackOverallFeedback = mergeOverallFeedback(batchResults);
-            List<String> fallbackStrengths = mergeListItems(batchResults, true);
+
+            List<QuestionEvaluationDTO> mergedEvaluations = mergeQuestionEvaluations(batchResults); //(合并所有批次的问题评估列表)
+
+
+            String fallbackOverallFeedback = mergeOverallFeedback(batchResults);   //(合并所有批次的总体反馈 → 降级备选)
+            List<String> fallbackStrengths = mergeListItems(batchResults, true);  //(两次，合并 strengths / improvements → 降级备选
             List<String> fallbackImprovements = mergeListItems(batchResults, false);
-            FinalSummaryDTO finalSummary = summarizeBatchResults(
+
+
+            FinalSummaryDTO finalSummary = summarizeBatchResults(  //二次汇总
                 sessionId,
                 resumeSummary,
                 questions,
@@ -125,7 +130,7 @@ public class AnswerEvaluationService {
             );
 
             // 转换为业务对象
-            return convertToReport(
+            return convertToReport(  //(转换为 InterviewReportDTO 并返回)
                 sessionId,
                 mergedEvaluations,
                 questions,
@@ -146,6 +151,7 @@ public class AnswerEvaluationService {
     
     /**
      * 构建问答记录字符串
+     * 将问题列表格式化为易于 AI 阅读的问答文本，包含问题编号、分类、问题内容和用户回答。
      */
     private String buildQARecords(List<InterviewQuestionDTO> questions) {
         StringBuilder sb = new StringBuilder();
@@ -158,11 +164,14 @@ public class AnswerEvaluationService {
         return sb.toString();
     }
 
+
+    //评估一批问题。   渲染系统提示词（包含输出格式说明）  和   用户提示（包含简历摘要和问答记录）
     private List<BatchEvaluationResult> evaluateInBatches(
         String sessionId,
         String resumeSummary,
         List<InterviewQuestionDTO> questions
     ) {
+        //按照批次大小将问题列表分成多个子列表，一次调用evaluateBatch   然后 收集结果
         List<BatchEvaluationResult> results = new ArrayList<>();
         for (int start = 0; start < questions.size(); start += evaluationBatchSize) {
             int end = Math.min(start + evaluationBatchSize, questions.size());
@@ -219,7 +228,7 @@ public class AnswerEvaluationService {
                     ? result.report().questionEvaluations()
                     : List.of();
             for (int i = 0; i < expectedSize; i++) {
-                if (i < current.size() && current.get(i) != null) {
+                if (i < current.size() && current.get(i) != null) {  //如果 current 列表的长度大于 i，并且 current.get(i) 不为 null，则直接将该 QuestionEvaluationDTO 添加到 merged。
                     merged.add(current.get(i));
                 } else {
                     merged.add(new QuestionEvaluationDTO(
@@ -237,10 +246,10 @@ public class AnswerEvaluationService {
 
     private String mergeOverallFeedback(List<BatchEvaluationResult> batchResults) {
         String feedback = batchResults.stream()
-            .map(BatchEvaluationResult::report)
-            .filter(r -> r != null && r.overallFeedback() != null && !r.overallFeedback().isBlank())
-            .map(EvaluationReportDTO::overallFeedback)
-            .collect(Collectors.joining("\n\n"));
+            .map(BatchEvaluationResult::report)  // 获取每个批次的 EvaluationReportDTO
+            .filter(r -> r != null && r.overallFeedback() != null && !r.overallFeedback().isBlank()) //过滤无效字段
+            .map(EvaluationReportDTO::overallFeedback)  // 提取 overallFeedback 字段
+            .collect(Collectors.joining("\n\n"));   // 用两个换行符拼接
         if (!feedback.isBlank()) {
             return feedback;
         }
@@ -263,7 +272,7 @@ public class AnswerEvaluationService {
                 .map(String::trim)
                 .forEach(merged::add);
         }
-        return merged.stream().limit(8).toList();
+        return merged.stream().limit(8).toList(); //写死了只能有8个优点或者 8个需要改进的地方
     }
 
     private FinalSummaryDTO summarizeBatchResults(
@@ -282,6 +291,8 @@ public class AnswerEvaluationService {
             variables.put("categorySummary", buildCategorySummary(questions, evaluations));
             variables.put("questionHighlights", buildQuestionHighlights(questions, evaluations));
             variables.put("fallbackOverallFeedback", fallbackOverallFeedback);
+            //fallbackStrengths 和 fallbackImprovements 来自 mergeListItems，该方法已经限制最多返回 8 条，且每条经过 trim 去空格，实际长度很短（一般每条 10~30 个字）。
+            //即使 8 条全部填满，总字符数通常在几百字以内，对应 Token 数约 100~300，影响极小。
             variables.put("fallbackStrengths", String.join("\n", fallbackStrengths));
             variables.put("fallbackImprovements", String.join("\n", fallbackImprovements));
             String summaryUserPrompt = summaryUserPromptTemplate.render(variables);
@@ -298,6 +309,7 @@ public class AnswerEvaluationService {
                 log
             );
 
+            //IMP这里的核心作用：在二次汇总（summarizeBatchResults）中，TODO优先使用 AI 生成的总结数据，如果 AI 返回的数据无效（为 null、空或仅空白），则降级使用批次聚合的备选数据。
             String overallFeedback = dto != null && dto.overallFeedback() != null && !dto.overallFeedback().isBlank()
                 ? dto.overallFeedback()
                 : fallbackOverallFeedback;

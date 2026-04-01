@@ -159,6 +159,7 @@ public class RateLimitAspect {
         // 从而适配 Redis Cluster 模式
         String hashTag = "{" + className + ":" + methodName + "}";
         String keyPrefix = "ratelimit:" + hashTag;
+        //IMP正是通过 Hash Tag 确保该方法的所有限流维度键（global、ip、user）TODO都分配到同一个 Redis 节点，保证 Lua 脚本的原子性操作。
 
         for (RateLimit.Dimension dimension : dimensions) {
             switch (dimension) {

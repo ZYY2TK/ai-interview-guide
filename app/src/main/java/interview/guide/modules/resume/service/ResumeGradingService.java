@@ -28,15 +28,16 @@ import java.util.Map;
 @Service
 public class ResumeGradingService {
     
-    private static final Logger log = LoggerFactory.getLogger(ResumeGradingService.class);
+    private static final Logger log = LoggerFactory.getLogger(ResumeGradingService.class);  //日志记录器，用于在分析过程中输出信息。
     
-    private final ChatClient chatClient;
-    private final PromptTemplate systemPromptTemplate;
-    private final PromptTemplate userPromptTemplate;
-    private final BeanOutputConverter<ResumeAnalysisResponseDTO> outputConverter;
-    private final StructuredOutputInvoker structuredOutputInvoker;
-    
+    private final ChatClient chatClient; //Spring AI 提供的客户端，用于调用大语言模型（LLM）。
+    private final PromptTemplate systemPromptTemplate;  //提示词模板，用于渲染系统提示和用户提示。
+    private final PromptTemplate userPromptTemplate;  //
+    private final BeanOutputConverter<ResumeAnalysisResponseDTO> outputConverter;//Spring AI 的工具类，将模型返回的 JSON 字符串转换为 Java 对象（这里的目标类型是内部记录 ResumeAnalysisResponseDTO）。
+    private final StructuredOutputInvoker structuredOutputInvoker;   //自定义组件，负责执行结构化输出调用（内部可能封装了重试、异常处理等）。
+
     // 中间DTO用于接收AI响应
+    //字段名与提示词中要求的JSON格式一致，BeanOutputConverter会自动将JSON转换为对象
     private record ResumeAnalysisResponseDTO(
         int overallScore,
         ScoreDetailDTO scoreDetail,
@@ -60,7 +61,7 @@ public class ResumeGradingService {
         String recommendation
     ) {}
     
-    public ResumeGradingService(
+    public ResumeGradingService(   //构造函数与依赖注入
             ChatClient.Builder chatClientBuilder,
             StructuredOutputInvoker structuredOutputInvoker,
             @Value("classpath:prompts/resume-analysis-system.st") Resource systemPromptResource,
@@ -82,18 +83,18 @@ public class ResumeGradingService {
         log.info("开始分析简历，文本长度: {} 字符", resumeText.length());
         
         try {
-            // 加载系统提示词
+            // 1.加载系统提示词
             String systemPrompt = systemPromptTemplate.render();
             
-            // 加载用户提示词并填充变量
+            //2.  加载用户提示词并填充变量
             Map<String, Object> variables = new HashMap<>();
             variables.put("resumeText", resumeText);
             String userPrompt = userPromptTemplate.render(variables);
             
-            // 添加格式指令到系统提示词
+            // 3. 添加格式指令到系统提示词
             String systemPromptWithFormat = systemPrompt + "\n\n" + outputConverter.getFormat();
             
-            // 调用AI
+            // 4. 调用AI
             ResumeAnalysisResponseDTO dto;
             try {
                 dto = structuredOutputInvoker.invoke(
@@ -117,7 +118,7 @@ public class ResumeGradingService {
             log.info("简历分析完成，总分: {}", result.overallScore());
             
             return result;
-            
+
         } catch (Exception e) {
             log.error("简历分析失败: {}", e.getMessage(), e);
             return createErrorResponse(resumeText, e.getMessage());

@@ -82,7 +82,8 @@ public class InterviewSessionCache {
     }
 
     /**
-     * 保存会话到缓存
+     * 保存会话到Redis，并且设置过期时间
+     * 若简历ID不为空并且会话状态为未完成（Created 或者in_Process），额外储存为一个映射，方便后续通过简历快速找到未完成的对话。
      */
     public void saveSession(String sessionId, String resumeText, Long resumeId,
                            List<InterviewQuestionDTO> questions, int currentIndex,

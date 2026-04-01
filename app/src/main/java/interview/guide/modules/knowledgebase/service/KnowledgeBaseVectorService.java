@@ -44,20 +44,24 @@ public class KnowledgeBaseVectorService {
     public void vectorizeAndStore(Long knowledgeBaseId, String content) {
         log.info("开始向量化知识库: kbId={}, contentLength={}", knowledgeBaseId, content.length());
         try {
-            // 1. 先删除该知识库的旧向量数据
+            // 1. 先删除该知识库的旧向量数据（支持重新向量化）
             deleteByKnowledgeBaseId(knowledgeBaseId);
             
-            // 2. 将文本分块
+            // 2. 将文本分块：  按照token 切分 IMP 每块约500tokens
             List<Document> chunks = textSplitter.apply(
                 List.of(new Document(content))
             );
             
             log.info("文本分块完成: {} 个chunks", chunks.size());
             
-            // 3. 为每个chunk添加metadata（知识库ID）
+            // 3. 为每个chunk添加metadata（知识库ID）   IMP标记每个chunk 属于哪个知识库
             // 统一使用 String 类型存储，确保查询一致性
             chunks.forEach(chunk -> chunk.getMetadata().put("kb_id", knowledgeBaseId.toString()));
-            // 4. 分批向量化并存储（阿里云 DashScope API 限制 batch size <= 10）
+            //IMP!!!!     给每个 chunk 这个 Document 对象加一个 TODO   metadata 字段：kb_id=当前知识库ID
+
+            // 4. 分批向量化并存储（阿里云 DashScope API 限制 batch size <= 10，TODO需要分批处理）
+            //IMP   说明你们这个 embedding 模型供应商有限制：
+            //TODO   一次最多处理 10 个 chunk
             int totalChunks = chunks.size();
             int batchCount = (totalChunks + MAX_BATCH_SIZE - 1) / MAX_BATCH_SIZE; // 向上取整
             log.info("开始分批向量化: 总共 {} 个chunks，分 {} 批处理，每批最多 {} 个",
@@ -67,7 +71,7 @@ public class KnowledgeBaseVectorService {
                 int end = Math.min(start + MAX_BATCH_SIZE, totalChunks);
                 List<Document> batch = chunks.subList(start, end);
                 log.debug("处理第 {}/{} 批: chunks {}-{}", i + 1, batchCount, start + 1, end);
-                vectorStore.add(batch);
+                vectorStore.add(batch);  //调用embedding API  并且存储到pgvector
             }
             log.info("知识库向量化完成: kbId={}, chunks={}, batches={}",
                     knowledgeBaseId, totalChunks, batchCount);

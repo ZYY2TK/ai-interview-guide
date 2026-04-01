@@ -192,16 +192,42 @@ public class KnowledgeBaseQueryService {
         if (knowledgeBaseIds == null || knowledgeBaseIds.isEmpty() || normalizeQuestion(question).isBlank()) {
             return Flux.just(NO_RESULT_RESPONSE);
         }
+        //首先看用户有没有传知识库 ID 和问题。如果问题是空的，直接返回一个预设的“无结果”响应。
+
 
         try {
+            //IMP流程图
+            //参数校验
+            //   ↓
+            //更新统计
+            //   ↓
+            //Query构建（normalize + rewrite）
+            //   ↓
+            //知识库检索（RAG）
+            //   ↓
+            //命中判断（是否有用）
+            //   ↓
+            //构建上下文（context）
+            //   ↓
+            //构建Prompt
+            //   ↓
+            //调用LLM（流式）
+            //   ↓
+            //输出优化（normalizeStreamOutput）
+            //   ↓
+            //返回给前端（SSE）
+
+
             // 1. 验证知识库是否存在并更新问题计数
+            //countService.updateQuestionCounts：这是一个后台统计功能，用来记录这些知识库被提问了多少次，通常用于热度分析或计费。
             countService.updateQuestionCounts(knowledgeBaseIds);
+
 
             // 2. Query rewrite + 动态参数检索
             QueryContext queryContext = buildQueryContext(question);
             List<Document> relevantDocs = retrieveRelevantDocs(queryContext, knowledgeBaseIds);
 
-            if (!hasEffectiveHit(question, relevantDocs)) {
+            if (!hasEffectiveHit(question, relevantDocs)) {   //判断命中文档是否有效：包含短token确认
                 return Flux.just(NO_RESULT_RESPONSE);
             }
 
@@ -239,7 +265,11 @@ public class KnowledgeBaseQueryService {
 
     private QueryContext buildQueryContext(String originalQuestion) {
         String normalizedQuestion = normalizeQuestion(originalQuestion);
+        //原始： "  How to Fix   JAVA Error?? "
+        //规范化： "how to fix java error"
         String rewrittenQuestion = rewriteQuestion(normalizedQuestion);
+        //normalized: "java error fix"
+        //rewritten:  "how to fix java error exception"
         Set<String> candidates = new LinkedHashSet<>();
         candidates.add(rewrittenQuestion);
         candidates.add(normalizedQuestion);
@@ -363,6 +393,7 @@ public class KnowledgeBaseQueryService {
      * 先观察前一小段流式内容，快速识别“无信息”模板。
      * - 命中无信息：立即输出固定模板并结束，防止长篇拒答
      * - 非无信息：尽快释放缓冲并继续实时透传
+     * IMP这里就是前窗口探测，然后做归一化。
      */
     private Flux<String> normalizeStreamOutput(Flux<String> rawFlux) {
         return Flux.create(sink -> {

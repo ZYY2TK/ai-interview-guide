@@ -242,6 +242,7 @@ public class RedisService {
             return false;
         }
 
+        //IMP   this::processor 把AbstractStreamConsumer的对象传到这里，然后依次调用processor  TODO  然后回到 AbstractStreamConsumer.processMessages()
         for (Map.Entry<StreamMessageId, Map<String, String>> entry : messages.entrySet()) {
             processor.process(entry.getKey(), entry.getValue());
         }
